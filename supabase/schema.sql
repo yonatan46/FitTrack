@@ -90,6 +90,10 @@ create table if not exists public.body_logs (
   created_at timestamptz not null default now()
 );
 
+-- One weigh-in per day per user, so re-logging the same day updates in place.
+create unique index if not exists body_logs_user_day_idx
+  on public.body_logs (user_id, logged_at);
+
 create table if not exists public.workout_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
