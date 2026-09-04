@@ -1,4 +1,4 @@
-create table public.user_preferences (
+create table if not exists public.user_preferences (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null default 'Athlete',
   height_cm numeric,
@@ -19,7 +19,7 @@ create table public.user_preferences (
   updated_at timestamptz not null default now()
 );
 
-create table public.exercises (
+create table if not exists public.exercises (
   id uuid primary key default gen_random_uuid(),
   name text not null unique,
   primary_muscle text not null,
@@ -29,7 +29,13 @@ create table public.exercises (
   created_at timestamptz not null default now()
 );
 
-create table public.workout_plans (
+insert into public.exercises (name, primary_muscle, equipment, difficulty, cues) values
+  ('Barbell Bench Press', 'chest', 'full_gym', 'beginner', array['Brace your feet', 'Control the descent']),
+  ('Seated Cable Row', 'back', 'full_gym', 'beginner', array['Keep your chest tall', 'Drive elbows back']),
+  ('Dumbbell Shoulder Press', 'shoulders', 'full_gym', 'beginner', array['Keep wrists stacked', 'Press smoothly'])
+on conflict (name) do nothing;
+
+create table if not exists public.workout_plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
@@ -38,7 +44,7 @@ create table public.workout_plans (
   created_at timestamptz not null default now()
 );
 
-create table public.plan_exercises (
+create table if not exists public.plan_exercises (
   id uuid primary key default gen_random_uuid(),
   plan_id uuid not null references public.workout_plans(id) on delete cascade,
   day_number integer not null,
@@ -50,7 +56,7 @@ create table public.plan_exercises (
   sort_order integer not null default 0
 );
 
-create table public.body_logs (
+create table if not exists public.body_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   logged_at date not null default current_date,
@@ -63,7 +69,7 @@ create table public.body_logs (
   created_at timestamptz not null default now()
 );
 
-create table public.workout_sessions (
+create table if not exists public.workout_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   session_date date not null default current_date,
@@ -73,7 +79,7 @@ create table public.workout_sessions (
   created_at timestamptz not null default now()
 );
 
-create table public.session_sets (
+create table if not exists public.session_sets (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references public.workout_sessions(id) on delete cascade,
   exercise_name text not null,
@@ -91,6 +97,14 @@ alter table public.user_preferences enable row level security;
 alter table public.workout_plans enable row level security;
 alter table public.plan_exercises enable row level security;
 alter table public.exercises enable row level security;
+
+drop policy if exists "Users can manage their preferences" on public.user_preferences;
+drop policy if exists "Users can manage their body logs" on public.body_logs;
+drop policy if exists "Users can manage their sessions" on public.workout_sessions;
+drop policy if exists "Users can manage their plans" on public.workout_plans;
+drop policy if exists "Users can manage exercises in their plans" on public.plan_exercises;
+drop policy if exists "Authenticated users can read exercises" on public.exercises;
+drop policy if exists "Users can manage their session sets" on public.session_sets;
 
 create policy "Users can manage their preferences" on public.user_preferences for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "Users can manage their body logs" on public.body_logs for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

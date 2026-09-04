@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { logWorkout, savePreferences, signOut } from "@/app/actions";
+import { logBodyWeight, logWorkout, savePreferences, signOut } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowUpRight,
@@ -53,11 +53,21 @@ export default function HomePage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [workoutLogged, setWorkoutLogged] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [loggingWorkout, setLoggingWorkout] = useState(false);
+  const [weightLogOpen, setWeightLogOpen] = useState(false);
+  const [weightLogs, setWeightLogs] = useState<Array<{ weight_kg: number; logged_at: string }>>([]);
+  const [workoutCount, setWorkoutCount] = useState(0);
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.from("user_preferences").select("display_name,current_weight_kg,target_weight_kg").maybeSingle().then(({ data }) => {
-      setProfile(data);
+    Promise.all([
+      supabase.from("user_preferences").select("display_name,current_weight_kg,target_weight_kg").maybeSingle(),
+      supabase.from("body_logs").select("weight_kg,logged_at").order("logged_at", { ascending: false }).limit(30),
+      supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("status", "completed"),
+    ]).then(([preferences, logs, sessions]) => {
+      setProfile(preferences.data);
+      setWeightLogs(logs.data || []);
+      setWorkoutCount(sessions.count || 0);
       setProfileLoaded(true);
     });
   }, []);
@@ -73,10 +83,20 @@ export default function HomePage() {
     setCompleted(next);
     setTimer(90);
     setTimerOpen(true);
-    if (next.length === exercises.length && !workoutLogged) {
-      logWorkout("Upper body strength", exercises.map((exercise, index) => ({ exercise_name: exercise.name, set_number: index + 1, reps: 8, weight_kg: Number.parseInt(exercise.load, 10) })))
-        .then(() => setWorkoutLogged(true))
-        .catch((error: Error) => setSaveError(error.message));
+  };
+
+  const finishWorkout = async () => {
+    if (completed.length !== exercises.length || loggingWorkout || workoutLogged) return;
+    setLoggingWorkout(true);
+    setSaveError("");
+    try {
+      await logWorkout("Upper body strength", exercises.map((exercise, index) => ({ exercise_name: exercise.name, set_number: index + 1, reps: 8, weight_kg: Number.parseInt(exercise.load, 10) })));
+      setWorkoutLogged(true);
+      setWorkoutCount((count) => count + 1);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save workout.");
+    } finally {
+      setLoggingWorkout(false);
     }
   };
 
@@ -112,7 +132,7 @@ export default function HomePage() {
               <div className="hero-art"><div className="ring ring-one" /><div className="ring ring-two" /><div className="hero-stat"><strong>04</strong><span>exercises</span></div><div className="hero-stat second"><strong>45<span>m</span></strong><span>estimated</span></div></div>
             </section>
 
-            <section className="section-block" id="workout"><div className="section-heading"><div><p className="eyebrow">Your plan</p><h3>Upper body strength</h3></div><button className="text-button">View full plan <ChevronRight size={15} /></button></div><div className="exercise-list">{exercises.map((exercise) => { const isDone = completed.includes(exercise.name); return <button className={`exercise-row ${isDone ? "is-done" : ""}`} key={exercise.name} onClick={() => toggleExercise(exercise.name)}><div className="exercise-icon">{isDone ? <Check size={18} /> : exercise.icon}</div><div className="exercise-info"><strong>{exercise.name}</strong><span>{exercise.detail}</span></div><div className="exercise-load"><span>Last time</span><strong>{exercise.load}</strong></div><div className="row-check">{isDone ? <Check size={15} /> : <Plus size={16} />}</div></button>; })}</div><button className="add-exercise"><Plus size={16} /> Add exercise</button></section>
+            <section className="section-block" id="workout"><div className="section-heading"><div><p className="eyebrow">Your plan</p><h3>Upper body strength</h3></div><button className="text-button">View full plan <ChevronRight size={15} /></button></div><div className="exercise-list">{exercises.map((exercise) => { const isDone = completed.includes(exercise.name); return <button className={`exercise-row ${isDone ? "is-done" : ""}`} key={exercise.name} onClick={() => toggleExercise(exercise.name)}><div className="exercise-icon">{isDone ? <Check size={18} /> : exercise.icon}</div><div className="exercise-info"><strong>{exercise.name}</strong><span>{exercise.detail}</span></div><div className="exercise-load"><span>Last time</span><strong>{exercise.load}</strong></div><div className="row-check">{isDone ? <Check size={15} /> : <Plus size={16} />}</div></button>; })}</div><button className="add-exercise"><Plus size={16} /> Add exercise</button>{completed.length === exercises.length && <><button className="primary-button finish-workout" onClick={finishWorkout} disabled={loggingWorkout || workoutLogged}>{loggingWorkout ? <LoaderCircle size={16} className="spin" /> : <Check size={16} />}{workoutLogged ? "Workout saved" : "Finish workout"}</button>{saveError && <p className="form-error workout-error">{saveError}</p>}</>}</section>
 
             <section className="section-block progress-block" id="progress"><div className="section-heading"><div><p className="eyebrow">Consistency</p><h3>This week</h3></div><span className="muted-label">2 of 4 sessions</span></div><div className="week-strip">{week.map((item) => <div className={`day ${item.state}`} key={`${item.day}-${item.date}`}><span>{item.day}</span><strong>{item.date}</strong><i>{item.state === "done" ? <Check size={13} /> : item.state === "today" ? <span /> : null}</i></div>)}</div></section>
           </div>
@@ -120,9 +140,9 @@ export default function HomePage() {
           <aside className="secondary-column">
             <section className="metric-card pace-card"><div className="card-top"><div><p className="eyebrow">Goal pace</p><h3>{profile?.target_weight_kg ? "On track" : "Add a target"}</h3></div><div className="pace-icon"><ArrowUpRight size={18} /></div></div><div className="pace-number"><strong>{profile?.current_weight_kg && profile?.target_weight_kg ? `−${Math.abs(profile.current_weight_kg - profile.target_weight_kg).toFixed(1)}` : "—"}</strong><span>kg to goal</span></div><div className="pace-bar"><span /></div><div className="pace-meta"><span>{profile?.current_weight_kg ? `${profile.current_weight_kg} kg` : "No weight yet"}</span><span>{profile?.target_weight_kg ? `Target ${profile.target_weight_kg} kg` : "Set target"}</span></div><p className="supporting-copy">Log your weight regularly and FitTrack will replace this estimate with your actual trend.</p><button className="card-link">View progress <ChevronRight size={15} /></button></section>
 
-            <section className="metric-card stats-card"><div className="card-top"><div><p className="eyebrow">Your momentum</p><h3>Looking strong</h3></div><Flame className="flame" size={20} fill="currentColor" /></div><div className="stat-grid"><div><strong>12</strong><span>day streak</span></div><div><strong>86<span>%</span></strong><span>adherence</span></div><div><strong>24</strong><span>workouts</span></div></div><div className="mini-chart"><div className="chart-label"><span>Weight trend</span><span>−0.8 kg <small>this month</small></span></div><svg viewBox="0 0 300 54" preserveAspectRatio="none" role="img" aria-label="Weight trend gradually moving down"><path d="M0 15 C25 8, 33 23, 55 20 S81 29, 103 22 S130 31, 152 29 S172 37, 197 29 S220 36, 244 33 S273 40, 300 35" fill="none" stroke="currentColor" strokeWidth="2.5" /><circle cx="300" cy="35" r="3.5" fill="currentColor" /></svg></div></section>
+            <section className="metric-card stats-card"><div className="card-top"><div><p className="eyebrow">Your momentum</p><h3>{workoutCount ? "Looking strong" : "Start your streak"}</h3></div><Flame className="flame" size={20} fill="currentColor" /></div><div className="stat-grid"><div><strong>{workoutCount}</strong><span>workouts</span></div><div><strong>{weightLogs.length}</strong><span>weigh-ins</span></div><div><strong>{completed.length}<span>/3</span></strong><span>today</span></div></div><div className="mini-chart"><div className="chart-label"><span>Weight trend</span><span>{weightLogs.length > 1 ? `${(weightLogs[0].weight_kg - weightLogs[weightLogs.length - 1].weight_kg).toFixed(1)} kg` : "No trend yet"} <small>logged</small></span></div><svg viewBox="0 0 300 54" preserveAspectRatio="none" role="img" aria-label="Weight trend"><path d="M0 35 C25 28, 33 38, 55 31 S81 36, 103 27 S130 34, 152 22 S172 28, 197 25 S220 31, 244 20 S273 25, 300 15" fill="none" stroke="currentColor" strokeWidth="2.5" /><circle cx="300" cy="15" r="3.5" fill="currentColor" /></svg></div></section>
 
-            <section className="metric-card nutrition-card"><div className="card-top"><div><p className="eyebrow">Today&apos;s fuel</p><h3>1,840 <small>/ 2,100 kcal</small></h3></div><Utensils size={19} /></div><div className="macro-bars"><div><span>Protein <b>138g</b></span><i><b style={{ width: "78%" }} /></i></div><div><span>Carbs <b>190g</b></span><i><b style={{ width: "62%" }} /></i></div><div><span>Fats <b>54g</b></span><i><b style={{ width: "48%" }} /></i></div></div></section>
+            <section className="metric-card nutrition-card"><div className="card-top"><div><p className="eyebrow">Body check-in</p><h3>{profile?.current_weight_kg || "—"} <small>kg current</small></h3></div><button className="pace-icon" onClick={() => setWeightLogOpen(!weightLogOpen)} aria-label="Log body weight"><Plus size={18} /></button></div>{weightLogOpen ? <form className="weight-form" action={logBodyWeight} onSubmit={() => setWeightLogOpen(false)}><input name="weight_kg" type="number" step="0.1" min="1" placeholder="82.4" required /><button className="primary-button" type="submit">Save weight</button></form> : <><div className="macro-bars"><div><span>Latest weigh-in <b>{weightLogs[0]?.logged_at || "Not logged"}</b></span><i><b style={{ width: weightLogs.length ? "78%" : "8%" }} /></i></div><div><span>Goal target <b>{profile?.target_weight_kg ? `${profile.target_weight_kg} kg` : "Not set"}</b></span><i><b style={{ width: profile?.target_weight_kg ? "62%" : "8%" }} /></i></div></div><button className="card-link" onClick={() => setWeightLogOpen(true)}>Log today&apos;s weight <ChevronRight size={15} /></button></>}</section>
 
             <section className="activity-panel"><div className="section-heading"><div><p className="eyebrow">Recent wins</p><h3>Activity</h3></div><button className="more-button" aria-label="More activity"><MoreHorizontal size={18} /></button></div><div className="activity-item"><div className="activity-icon yellow"><Trophy size={15} /></div><div><strong>New personal best</strong><span>Bench press · 60 kg × 8</span></div><time>Today</time></div><div className="activity-item"><div className="activity-icon green"><Footprints size={15} /></div><div><strong>Workout complete</strong><span>Lower body · 42 min</span></div><time>Yesterday</time></div></section>
           </aside>

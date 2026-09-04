@@ -28,12 +28,8 @@ export async function savePreferences(formData: FormData) {
   };
   const { error } = await supabase.from("user_preferences").upsert(values);
   if (error) throw new Error(error.message);
-  const exercises = [
-    { name: "Barbell Bench Press", primary_muscle: "chest", equipment: "full_gym", difficulty: "beginner", cues: ["Brace your feet", "Control the descent"] },
-    { name: "Seated Cable Row", primary_muscle: "back", equipment: "full_gym", difficulty: "beginner", cues: ["Keep your chest tall", "Drive elbows back"] },
-    { name: "Dumbbell Shoulder Press", primary_muscle: "shoulders", equipment: "full_gym", difficulty: "beginner", cues: ["Keep wrists stacked", "Press smoothly"] },
-  ];
-  const { data: exerciseRows, error: exerciseError } = await supabase.from("exercises").upsert(exercises, { onConflict: "name" }).select("id,name");
+  const exerciseNames = ["Barbell Bench Press", "Seated Cable Row", "Dumbbell Shoulder Press"];
+  const { data: exerciseRows, error: exerciseError } = await supabase.from("exercises").select("id,name").in("name", exerciseNames);
   if (exerciseError) throw new Error(exerciseError.message);
   const { data: plan, error: planError } = await supabase.from("workout_plans").insert({ user_id: user.id, name: "Upper body strength", days_per_week: values.training_days }).select("id").single();
   if (planError) throw new Error(planError.message);
@@ -51,6 +47,17 @@ export async function logWorkout(title: string, sets: Array<{ exercise_name: str
   const { data: session, error: sessionError } = await supabase.from("workout_sessions").insert({ user_id: user.id, title, status: "completed" }).select("id").single();
   if (sessionError) throw new Error(sessionError.message);
   const { error } = await supabase.from("session_sets").insert(sets.map((set) => ({ ...set, session_id: session.id })));
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
+export async function logBodyWeight(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("You must be signed in.");
+  const weight = Number(formData.get("weight_kg"));
+  if (!Number.isFinite(weight) || weight <= 0) throw new Error("Enter a valid weight.");
+  const { error } = await supabase.from("body_logs").insert({ user_id: user.id, weight_kg: weight, logged_at: new Date().toISOString().slice(0, 10) });
   if (error) throw new Error(error.message);
   revalidatePath("/");
 }
