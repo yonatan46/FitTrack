@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { logWorkout, savePreferences, signOut } from "@/app/actions";
+import { createClient } from "@/lib/supabase/client";
 import {
   ArrowUpRight,
   BarChart3,
@@ -14,6 +16,7 @@ import {
   Footprints,
   Home,
   LayoutGrid,
+  LoaderCircle,
   MoreHorizontal,
   Play,
   Plus,
@@ -46,6 +49,18 @@ export default function HomePage() {
   const [completed, setCompleted] = useState<string[]>([]);
   const [timer, setTimer] = useState(0);
   const [timerOpen, setTimerOpen] = useState(false);
+  const [profile, setProfile] = useState<{ display_name: string; current_weight_kg: number | null; target_weight_kg: number | null } | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [workoutLogged, setWorkoutLogged] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.from("user_preferences").select("display_name,current_weight_kg,target_weight_kg").maybeSingle().then(({ data }) => {
+      setProfile(data);
+      setProfileLoaded(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (!timer) return;
@@ -54,12 +69,22 @@ export default function HomePage() {
   }, [timer]);
 
   const toggleExercise = (name: string) => {
-    setCompleted((current) => current.includes(name) ? current.filter((item) => item !== name) : [...current, name]);
+    const next = completed.includes(name) ? completed.filter((item) => item !== name) : [...completed, name];
+    setCompleted(next);
     setTimer(90);
     setTimerOpen(true);
+    if (next.length === exercises.length && !workoutLogged) {
+      logWorkout("Upper body strength", exercises.map((exercise, index) => ({ exercise_name: exercise.name, set_number: index + 1, reps: 8, weight_kg: Number.parseInt(exercise.load, 10) })))
+        .then(() => setWorkoutLogged(true))
+        .catch((error: Error) => setSaveError(error.message));
+    }
   };
 
   const formatTimer = (value: number) => `${Math.floor(value / 60).toString().padStart(2, "0")}:${(value % 60).toString().padStart(2, "0")}`;
+
+  if (!profileLoaded) return <main className="auth-shell"><LoaderCircle className="spin" color="var(--lime)" /></main>;
+
+  if (!profile) return <main className="onboarding-backdrop"><section className="onboarding-card"><p className="eyebrow">First, make it yours</p><h2>Tell us where you&apos;re starting.</h2><p>We&apos;ll use this to make your first training plan and pace-to-goal estimate.</p><form action={savePreferences}><div className="onboarding-grid"><label>Name<input name="display_name" required placeholder="Jordan" /></label><label>Current weight (kg)<input name="current_weight_kg" type="number" min="1" step="0.1" required placeholder="82.4" /></label><label>Goal<select name="goal_type" defaultValue="maintain"><option value="lose_weight">Lose weight</option><option value="gain_weight">Gain weight</option><option value="gain_muscle">Gain muscle</option><option value="maintain">Maintain</option><option value="recomp">Recomp</option></select></label><label>Target weight (kg)<input name="target_weight_kg" type="number" min="1" step="0.1" placeholder="78.2" /></label><label>Training days<select name="training_days" defaultValue="3"><option value="2">2 days</option><option value="3">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option></select></label><label>Experience<select name="experience_level" defaultValue="beginner"><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label></div><button className="primary-button onboarding-submit" type="submit">Build my starting plan <ArrowUpRight size={16} /></button></form></section></main>;
 
   return (
     <main className="app-shell">
@@ -78,7 +103,7 @@ export default function HomePage() {
       </aside>
 
       <section className="main-content" id="dashboard">
-        <header className="topbar"><div><p className="eyebrow">Wednesday, October 14, 2026</p><h1>Good morning, Jordan <span className="wave">✦</span></h1></div><div className="top-actions"><button className="icon-button" aria-label="Help"><CircleHelp size={19} /></button><button className="icon-button notification" aria-label="Notifications"><Bell size={19} /><i /></button><div className="avatar avatar-top">JS</div></div></header>
+        <header className="topbar"><div><p className="eyebrow">{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date())}</p><h1>Good morning, {profile?.display_name || "Athlete"} <span className="wave">✦</span></h1></div><div className="top-actions"><button className="icon-button" aria-label="Help"><CircleHelp size={19} /></button><button className="icon-button notification" aria-label="Notifications"><Bell size={19} /><i /></button><button className="profile-menu-button" onClick={() => signOut()} title="Sign out"><div className="avatar avatar-top">{(profile?.display_name || "A").slice(0, 2).toUpperCase()}</div></button></div></header>
 
         <div className="content-grid">
           <div className="primary-column">
@@ -93,7 +118,7 @@ export default function HomePage() {
           </div>
 
           <aside className="secondary-column">
-            <section className="metric-card pace-card"><div className="card-top"><div><p className="eyebrow">Goal pace</p><h3>On track</h3></div><div className="pace-icon"><ArrowUpRight size={18} /></div></div><div className="pace-number"><strong>−4.2</strong><span>kg to goal</span></div><div className="pace-bar"><span /></div><div className="pace-meta"><span>82.4 kg</span><span>Target 78.2 kg</span></div><p className="supporting-copy">Your trend is right where it needs to be. Keep this rhythm and you&apos;ll reach your goal by <strong>Dec 18.</strong></p><button className="card-link">View progress <ChevronRight size={15} /></button></section>
+            <section className="metric-card pace-card"><div className="card-top"><div><p className="eyebrow">Goal pace</p><h3>{profile?.target_weight_kg ? "On track" : "Add a target"}</h3></div><div className="pace-icon"><ArrowUpRight size={18} /></div></div><div className="pace-number"><strong>{profile?.current_weight_kg && profile?.target_weight_kg ? `−${Math.abs(profile.current_weight_kg - profile.target_weight_kg).toFixed(1)}` : "—"}</strong><span>kg to goal</span></div><div className="pace-bar"><span /></div><div className="pace-meta"><span>{profile?.current_weight_kg ? `${profile.current_weight_kg} kg` : "No weight yet"}</span><span>{profile?.target_weight_kg ? `Target ${profile.target_weight_kg} kg` : "Set target"}</span></div><p className="supporting-copy">Log your weight regularly and FitTrack will replace this estimate with your actual trend.</p><button className="card-link">View progress <ChevronRight size={15} /></button></section>
 
             <section className="metric-card stats-card"><div className="card-top"><div><p className="eyebrow">Your momentum</p><h3>Looking strong</h3></div><Flame className="flame" size={20} fill="currentColor" /></div><div className="stat-grid"><div><strong>12</strong><span>day streak</span></div><div><strong>86<span>%</span></strong><span>adherence</span></div><div><strong>24</strong><span>workouts</span></div></div><div className="mini-chart"><div className="chart-label"><span>Weight trend</span><span>−0.8 kg <small>this month</small></span></div><svg viewBox="0 0 300 54" preserveAspectRatio="none" role="img" aria-label="Weight trend gradually moving down"><path d="M0 15 C25 8, 33 23, 55 20 S81 29, 103 22 S130 31, 152 29 S172 37, 197 29 S220 36, 244 33 S273 40, 300 35" fill="none" stroke="currentColor" strokeWidth="2.5" /><circle cx="300" cy="35" r="3.5" fill="currentColor" /></svg></div></section>
 
