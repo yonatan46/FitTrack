@@ -136,7 +136,12 @@ export default function HomePage() {
     () => [...new Set(planExercises.map((row) => row.day_number))].sort((a, b) => a - b),
     [planExercises],
   );
-  const todayDay = dayNumbers.length ? dayNumbers[workoutCount % dayNumbers.length] : 1;
+
+  // Plan days are anchored to the calendar: Monday = Day 1, and any weekday past
+  // the plan's training-day count is a rest day (so Sunday is always rest).
+  const weekdayIndex = (new Date().getDay() + 6) % 7; // Mon = 0 … Sun = 6
+  const isRestDay = dayNumbers.length > 0 && weekdayIndex >= dayNumbers.length;
+  const todayDay = dayNumbers.length ? dayNumbers[Math.min(weekdayIndex, dayNumbers.length - 1)] : 1;
 
   const todayFocus = useMemo(() => {
     const row = planExercises.find((item) => item.day_number === todayDay);
@@ -146,6 +151,7 @@ export default function HomePage() {
   const focusWords = focusUsesAmp ? todayFocus.split(" & ") : todayFocus.split(" ");
 
   const todayExercises = useMemo(() => {
+    if (isRestDay) return [];
     return planExercises
       .filter((row) => row.day_number === todayDay)
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -172,12 +178,14 @@ export default function HomePage() {
           lastWeight,
         };
       });
-  }, [planExercises, todayDay, sessions]);
+  }, [planExercises, todayDay, sessions, isRestDay]);
 
   const estimatedMinutes = useMemo(
     () => Math.max(1, Math.round(todayExercises.reduce((total, ex) => total + ex.sets * (ex.restSeconds + 40), 0) / 60)),
     [todayExercises],
   );
+
+  const trainingDays = dayNumbers.length || daysPerWeek;
 
   const week = useMemo(() => {
     const start = startOfWeek(new Date());
@@ -191,11 +199,11 @@ export default function HomePage() {
       let state: "done" | "today" | "planned" | "rest";
       if (doneDates.has(iso)) state = "done";
       else if (iso === todayIso) state = "today";
-      else if (index < daysPerWeek) state = "planned";
+      else if (index < trainingDays) state = "planned";
       else state = "rest";
       return { day: letters[index], date: String(date.getDate()), state, key: iso };
     });
-  }, [sessions, daysPerWeek]);
+  }, [sessions, trainingDays]);
 
   const sessionsThisWeek = useMemo(() => {
     const weekStart = localIso(startOfWeek(new Date()));
@@ -335,24 +343,32 @@ export default function HomePage() {
           <div className="primary-column">
             <section className="hero-panel">
               <div className="hero-copy">
-                <div className="section-kicker"><span className="live-dot" />Today&apos;s workout · Day {todayDay}</div>
-                <h2>{focusWords[0]}<br /><em>{focusWords.slice(1).join(focusUsesAmp ? " & " : " ") || "session"}</em></h2>
-                <p>{todayExercises.length ? `${todayExercises.length} exercises · ${planName}` : "Generate a plan to see today's session."}</p>
-                <button className="primary-button" onClick={() => document.getElementById("workout")?.scrollIntoView({ behavior: "smooth" })}><Play size={16} fill="currentColor" />Start workout <ArrowUpRight size={16} /></button>
+                <div className="section-kicker"><span className="live-dot" />{isRestDay ? "Recovery" : `Today's workout · Day ${todayDay}`}</div>
+                {isRestDay
+                  ? <h2>Rest<br /><em>day</em></h2>
+                  : <h2>{focusWords[0]}<br /><em>{focusWords.slice(1).join(focusUsesAmp ? " & " : " ") || "session"}</em></h2>}
+                <p>{isRestDay
+                  ? "Nothing scheduled today — let your muscles rebuild and come back stronger tomorrow."
+                  : todayExercises.length ? `${todayExercises.length} exercises · ${planName}` : "Generate a plan to see today's session."}</p>
+                {isRestDay
+                  ? <Link className="primary-button" href="/workouts"><Play size={16} fill="currentColor" />See the plan <ArrowUpRight size={16} /></Link>
+                  : <button className="primary-button" onClick={() => document.getElementById("workout")?.scrollIntoView({ behavior: "smooth" })}><Play size={16} fill="currentColor" />Start workout <ArrowUpRight size={16} /></button>}
               </div>
               <div className="hero-art">
                 <div className="ring ring-one" /><div className="ring ring-two" />
-                <div className="hero-stat"><strong>{String(todayExercises.length).padStart(2, "0")}</strong><span>exercises</span></div>
-                <div className="hero-stat second"><strong>{estimatedMinutes}<span>m</span></strong><span>estimated</span></div>
+                <div className="hero-stat"><strong>{isRestDay ? "00" : String(todayExercises.length).padStart(2, "0")}</strong><span>{isRestDay ? "sets today" : "exercises"}</span></div>
+                <div className="hero-stat second"><strong>{isRestDay ? "—" : <>{estimatedMinutes}<span>m</span></>}</strong><span>{isRestDay ? "rest day" : "estimated"}</span></div>
               </div>
             </section>
 
             <section className="section-block" id="workout">
               <div className="section-heading">
-                <div><p className="eyebrow">Day {todayDay} · {planName}</p><h3>{todayFocus}</h3></div>
+                <div><p className="eyebrow">{isRestDay ? planName : `Day ${todayDay} · ${planName}`}</p><h3>{isRestDay ? "Rest day" : todayFocus}</h3></div>
                 <Link className="text-button" href="/workouts">Open full plan <ChevronRight size={15} /></Link>
               </div>
-              {todayExercises.length ? (
+              {isRestDay ? (
+                <p className="empty-state">Rest day. Recovery is when the growth actually happens — sleep well, hit your protein, and go again tomorrow.</p>
+              ) : todayExercises.length ? (
                 <>
                   <div className="exercise-list">
                     {todayExercises.map((exercise) => {
@@ -386,7 +402,7 @@ export default function HomePage() {
             <section className="section-block progress-block" id="progress">
               <div className="section-heading">
                 <div><p className="eyebrow">Consistency</p><h3>This week</h3></div>
-                <span className="muted-label">{sessionsThisWeek} of {daysPerWeek} sessions</span>
+                <span className="muted-label">{sessionsThisWeek} of {trainingDays} sessions</span>
               </div>
               <div className="week-strip">
                 {week.map((item) => (

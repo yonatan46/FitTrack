@@ -81,7 +81,11 @@ export default function WorkoutsPage() {
       setEntries(seeded);
 
       const days = [...new Set(planRows.map((row) => row.day_number))].sort((a, b) => a - b);
-      if (days.length) setActiveDay(days[0]);
+      if (days.length) {
+        // Monday = Day 1; default to today's day, or Day 1 if today is a rest day.
+        const weekdayIndex = (new Date().getDay() + 6) % 7;
+        setActiveDay(weekdayIndex < days.length ? days[weekdayIndex] : days[0]);
+      }
       setLoaded(true);
     });
   }, []);

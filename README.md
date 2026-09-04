@@ -19,7 +19,8 @@ On Vercel, add the same two environment variables in **Project → Settings → 
   workout plan from the exercise library. The default is a body-part split —
   **chest & triceps / back & biceps / legs & shoulders**, repeated for days 4–6 — adapted for
   `full gym`, `home basics`, or `bodyweight`.
-- **Dashboard** – shows today's session from your actual plan (rotating through the plan's days),
+- **Dashboard** – shows today's session from your actual plan, anchored to the calendar
+  (Monday = Day 1; weekdays past your training-day count, incl. Sunday, are rest days),
   last-used weights pulled from your history, a live rest timer, a real weekly-consistency strip,
   momentum stats, and a body-weight sparkline.
 - **My workouts** – full plan with day tabs, per-set weight/reps logging, running volume total,
