@@ -40,6 +40,7 @@ type ExerciseRef = { name: string; primary_muscle: string };
 
 type PlanExerciseRow = {
   day_number: number;
+  day_focus: string | null;
   sets: number;
   rep_min: number;
   rep_max: number;
@@ -109,7 +110,7 @@ export default function HomePage() {
       supabase.from("body_logs").select("weight_kg,logged_at").order("logged_at", { ascending: false }).limit(30),
       supabase.from("workout_sessions").select("id,title,session_date,session_sets(exercise_name,weight_kg,reps,set_number)").eq("status", "completed").order("session_date", { ascending: false }).limit(30),
       supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("workout_plans").select("name,days_per_week,created_at,plan_exercises(day_number,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("workout_plans").select("name,days_per_week,created_at,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]).then(([prefs, logs, sess, count, plan]) => {
       setProfile((prefs.data as Profile) ?? null);
       setWeightLogs(logs.data ?? []);
@@ -136,6 +137,13 @@ export default function HomePage() {
     [planExercises],
   );
   const todayDay = dayNumbers.length ? dayNumbers[workoutCount % dayNumbers.length] : 1;
+
+  const todayFocus = useMemo(() => {
+    const row = planExercises.find((item) => item.day_number === todayDay);
+    return row?.day_focus?.trim() || planName;
+  }, [planExercises, todayDay, planName]);
+  const focusUsesAmp = todayFocus.includes(" & ");
+  const focusWords = focusUsesAmp ? todayFocus.split(" & ") : todayFocus.split(" ");
 
   const todayExercises = useMemo(() => {
     return planExercises
@@ -328,8 +336,8 @@ export default function HomePage() {
             <section className="hero-panel">
               <div className="hero-copy">
                 <div className="section-kicker"><span className="live-dot" />Today&apos;s workout · Day {todayDay}</div>
-                <h2>{planName.split(" ")[0]}<br /><em>{planName.split(" ").slice(1).join(" ") || "session"}</em></h2>
-                <p>{todayExercises.length ? `${todayExercises.map((exercise) => exercise.muscle).filter(Boolean).slice(0, 3).join(", ") || "Full body"} focus today.` : "Generate a plan to see today's session."}</p>
+                <h2>{focusWords[0]}<br /><em>{focusWords.slice(1).join(focusUsesAmp ? " & " : " ") || "session"}</em></h2>
+                <p>{todayExercises.length ? `${todayExercises.length} exercises · ${planName}` : "Generate a plan to see today's session."}</p>
                 <button className="primary-button" onClick={() => document.getElementById("workout")?.scrollIntoView({ behavior: "smooth" })}><Play size={16} fill="currentColor" />Start workout <ArrowUpRight size={16} /></button>
               </div>
               <div className="hero-art">
@@ -341,7 +349,7 @@ export default function HomePage() {
 
             <section className="section-block" id="workout">
               <div className="section-heading">
-                <div><p className="eyebrow">Your plan</p><h3>{planName}</h3></div>
+                <div><p className="eyebrow">Day {todayDay} · {planName}</p><h3>{todayFocus}</h3></div>
                 <Link className="text-button" href="/workouts">Open full plan <ChevronRight size={15} /></Link>
               </div>
               {todayExercises.length ? (

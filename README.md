@@ -16,7 +16,9 @@ On Vercel, add the same two environment variables in **Project → Settings → 
 
 - **Auth** – Supabase email sign-up / sign-in, route protection via middleware, sign-out.
 - **Onboarding** – captures goal, weight, training days, and equipment, then generates a real
-  multi-day workout plan from the exercise library (`full gym`, `home basics`, or `bodyweight`).
+  workout plan from the exercise library. The default is a body-part split —
+  **chest & triceps / back & biceps / legs & shoulders**, repeated for days 4–6 — adapted for
+  `full gym`, `home basics`, or `bodyweight`.
 - **Dashboard** – shows today's session from your actual plan (rotating through the plan's days),
   last-used weights pulled from your history, a live rest timer, a real weekly-consistency strip,
   momentum stats, and a body-weight sparkline.

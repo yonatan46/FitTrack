@@ -69,6 +69,7 @@ create table if not exists public.plan_exercises (
   id uuid primary key default gen_random_uuid(),
   plan_id uuid not null references public.workout_plans(id) on delete cascade,
   day_number integer not null,
+  day_focus text,
   exercise_id uuid not null references public.exercises(id),
   sets integer not null default 3 check (sets > 0),
   rep_min integer not null default 8,
@@ -76,6 +77,8 @@ create table if not exists public.plan_exercises (
   rest_seconds integer not null default 90,
   sort_order integer not null default 0
 );
+
+alter table public.plan_exercises add column if not exists day_focus text;
 
 create table if not exists public.body_logs (
   id uuid primary key default gen_random_uuid(),

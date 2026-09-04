@@ -11,6 +11,7 @@ type ExerciseRef = { name: string; primary_muscle: string };
 
 type PlanExerciseRow = {
   day_number: number;
+  day_focus: string | null;
   sets: number;
   rep_min: number;
   rep_max: number;
@@ -49,7 +50,7 @@ export default function WorkoutsPage() {
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("workout_plans").select("name,plan_exercises(day_number,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("workout_plans").select("name,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("workout_sessions").select("id,title,session_date,duration_minutes,session_sets(weight_kg,reps)").eq("status", "completed").order("session_date", { ascending: false }).limit(10),
       supabase.from("workout_sessions").select("session_sets(exercise_name,weight_kg)").eq("status", "completed").order("session_date", { ascending: false }).limit(20),
     ]).then(([plan, hist, recent]) => {
@@ -91,6 +92,15 @@ export default function WorkoutsPage() {
     () => rows.filter((row) => row.day_number === activeDay).sort((a, b) => a.sort_order - b.sort_order),
     [rows, activeDay],
   );
+
+  const focusByDay = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const row of rows) {
+      if (row.day_focus && !map.has(row.day_number)) map.set(row.day_number, row.day_focus);
+    }
+    return map;
+  }, [rows]);
+  const dayFocus = focusByDay.get(activeDay) ?? `Day ${activeDay}`;
 
   const updateEntry = (key: string, index: number, patch: Partial<SetEntry>) => {
     setEntries((current) => {
@@ -181,8 +191,8 @@ export default function WorkoutsPage() {
         <section className="route-panel workout-detail">
           <div className="route-panel-heading">
             <div>
-              <p className="eyebrow">{planName}</p>
-              <h2>Day {activeDay} session</h2>
+              <p className="eyebrow">Day {activeDay} · {planName}</p>
+              <h2>{dayFocus}</h2>
               <span className="panel-meta"><Clock3 size={14} /> {dayExercises.length} exercises <Dumbbell size={14} /> {dayExercises.reduce((total, row) => total + row.sets, 0)} sets</span>
             </div>
             <div className="workout-badge"><Play size={18} fill="currentColor" /></div>

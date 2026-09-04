@@ -14,38 +14,47 @@ type ServerClient = Awaited<ReturnType<typeof createClient>>;
 type TemplateDay = { focus: string; exercises: string[] };
 type Template = { name: string; days: TemplateDay[] };
 
+/**
+ * Recommended split: a 3-day body-part rotation (chest+triceps / back+biceps /
+ * legs+shoulders) repeated for days 4-6. The first exercise of each day is the
+ * heavy compound (4 x 5-8, longer rest); the rest are accessories (3 x 8-12).
+ */
+const CHEST_TRI = "Chest & triceps";
+const BACK_BI = "Back & biceps";
+const LEGS_DELTS = "Legs & shoulders";
+
 const TEMPLATES: Record<string, Template> = {
   full_gym: {
-    name: "Full-body strength",
+    name: "Classic split",
     days: [
-      { focus: "Push", exercises: ["Barbell Bench Press", "Dumbbell Shoulder Press", "Cable Triceps Pushdown"] },
-      { focus: "Pull", exercises: ["Lat Pulldown", "Seated Cable Row", "Dumbbell Biceps Curl"] },
-      { focus: "Legs", exercises: ["Back Squat", "Romanian Deadlift", "Leg Press"] },
-      { focus: "Full body", exercises: ["Barbell Bench Press", "Pull Up", "Walking Lunges"] },
-      { focus: "Upper", exercises: ["Dumbbell Shoulder Press", "Lat Pulldown", "Cable Triceps Pushdown"] },
-      { focus: "Lower", exercises: ["Back Squat", "Romanian Deadlift", "Walking Lunges"] },
+      { focus: CHEST_TRI, exercises: ["Barbell Bench Press", "Push Up", "Cable Triceps Pushdown"] },
+      { focus: BACK_BI, exercises: ["Lat Pulldown", "Seated Cable Row", "Dumbbell Biceps Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Back Squat", "Romanian Deadlift", "Leg Press", "Dumbbell Shoulder Press"] },
+      { focus: CHEST_TRI, exercises: ["Barbell Bench Press", "Push Up", "Cable Triceps Pushdown"] },
+      { focus: BACK_BI, exercises: ["Lat Pulldown", "Pull Up", "Dumbbell Biceps Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Back Squat", "Walking Lunges", "Leg Press", "Dumbbell Shoulder Press"] },
     ],
   },
   home_basic: {
-    name: "Home dumbbell plan",
+    name: "Home split",
     days: [
-      { focus: "Upper", exercises: ["Dumbbell Shoulder Press", "Dumbbell Biceps Curl", "Push Up"] },
-      { focus: "Lower", exercises: ["Walking Lunges", "Romanian Deadlift", "Push Up"] },
-      { focus: "Full body", exercises: ["Push Up", "Dumbbell Biceps Curl", "Walking Lunges"] },
-      { focus: "Upper", exercises: ["Dumbbell Shoulder Press", "Pull Up", "Dumbbell Biceps Curl"] },
-      { focus: "Lower", exercises: ["Walking Lunges", "Romanian Deadlift", "Push Up"] },
-      { focus: "Full body", exercises: ["Push Up", "Pull Up", "Walking Lunges"] },
+      { focus: CHEST_TRI, exercises: ["Push Up", "Dumbbell Shoulder Press", "Cable Triceps Pushdown"] },
+      { focus: BACK_BI, exercises: ["Pull Up", "Seated Cable Row", "Dumbbell Biceps Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Romanian Deadlift", "Walking Lunges", "Dumbbell Shoulder Press"] },
+      { focus: CHEST_TRI, exercises: ["Push Up", "Dumbbell Shoulder Press", "Cable Triceps Pushdown"] },
+      { focus: BACK_BI, exercises: ["Pull Up", "Seated Cable Row", "Dumbbell Biceps Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Romanian Deadlift", "Walking Lunges", "Dumbbell Shoulder Press"] },
     ],
   },
   bodyweight: {
-    name: "Bodyweight strength",
+    name: "Bodyweight split",
     days: [
-      { focus: "Push", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
-      { focus: "Pull", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
-      { focus: "Full body", exercises: ["Push Up", "Pull Up", "Walking Lunges"] },
-      { focus: "Full body", exercises: ["Walking Lunges", "Push Up", "Pull Up"] },
-      { focus: "Push", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
-      { focus: "Pull", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
+      { focus: "Push focus", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
+      { focus: "Pull focus", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
+      { focus: "Legs focus", exercises: ["Walking Lunges", "Push Up", "Pull Up"] },
+      { focus: "Push focus", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
+      { focus: "Pull focus", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
+      { focus: "Legs focus", exercises: ["Walking Lunges", "Push Up", "Pull Up"] },
     ],
   },
 };
@@ -94,6 +103,7 @@ async function createPlanForUser(
         return {
           plan_id: plan.id as string,
           day_number: dayIndex + 1,
+          day_focus: day.focus,
           exercise_id: exerciseId,
           sets: isCompound ? 4 : 3,
           rep_min: isCompound ? 5 : 8,
