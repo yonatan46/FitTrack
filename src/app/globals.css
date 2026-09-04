@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+@import './theme-overrides.css';
 
 :root { --ink: #f7f4f2; --muted: #a39b98; --dim: #6f6765; --bg: #0f0d0d; --panel: #1a1717; --panel-2: #241e1e; --line: #382d2d; --lime: #ff5c61; --lime-dark: #c63d45; --orange: #f19a70; --blue: #d18b91; }
 * { box-sizing: border-box; }

@@ -1,0 +1,159 @@
+:root {
+  --ink: #f8f4f0;
+  --muted: #b0a39e;
+  --dim: #756864;
+  --bg: #100d0e;
+  --panel: #1b1517;
+  --panel-2: #271c20;
+  --line: #433036;
+  --lime: #e98b73;
+  --lime-dark: #b65a53;
+  --orange: #efb06d;
+  --blue: #b78b98;
+}
+
+body {
+  background: radial-gradient(circle at 82% 0%, rgba(112, 64, 74, .2), transparent 34%), var(--bg);
+}
+
+.hero-panel {
+  background: linear-gradient(135deg, #2b1b23 0%, #70404a 50%, #d98d6f 100%);
+  color: #fff6f0;
+}
+
+.hero-panel h2 em,
+.hero-panel p {
+  color: #f5c0a4;
+}
+
+.primary-button {
+  background: #211316;
+}
+
+.auth-card input,
+.onboarding-card input,
+.onboarding-card select,
+.progress-form input,
+.settings-form input,
+.settings-form select,
+.search-field input,
+.weight-form input {
+  min-height: 46px;
+  border-radius: 9px;
+}
+
+.auth-card input:focus,
+.onboarding-card input:focus,
+.onboarding-card select:focus,
+.progress-form input:focus,
+.settings-form input:focus,
+.settings-form select:focus,
+.search-field input:focus,
+.weight-form input:focus {
+  border-color: var(--lime);
+  box-shadow: 0 0 0 3px rgba(233, 139, 115, .14);
+}
+
+.profile-chip {
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-chip:hover {
+  background: var(--panel-2);
+}
+
+.profile-popover {
+  position: fixed;
+  top: 78px;
+  right: clamp(18px, 5vw, 74px);
+  z-index: 20;
+  width: min(290px, calc(100vw - 36px));
+  padding: 23px;
+  border: 1px solid #60434a;
+  border-radius: 13px;
+  background: linear-gradient(145deg, #241a1e, #151113);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, .42);
+}
+
+.modal-avatar {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--lime), var(--orange));
+  color: var(--bg);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.profile-popover h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+  letter-spacing: -.8px;
+}
+
+.modal-copy {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  margin: 0 0 18px;
+}
+
+.modal-settings {
+  justify-content: center;
+  width: 100%;
+}
+
+.modal-signout {
+  width: 100%;
+  margin-top: 9px;
+  padding: 10px;
+  color: #e5a29e;
+  border: 1px solid #523236;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 11px;
+}
+
+.modal-signout:hover {
+  color: var(--ink);
+  border-color: var(--lime);
+}
+
+.exercise-card-art {
+  min-height: 160px;
+  background-position: center;
+  background-size: cover;
+}
+
+.exercise-card-copy {
+  min-height: 150px;
+}
+
+.demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 12px;
+  color: var(--lime);
+  font-size: 10px;
+}
+
+.demo-link:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 620px) {
+  .profile-popover {
+    top: 70px;
+    right: 18px;
+  }
+}
