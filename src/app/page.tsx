@@ -111,13 +111,13 @@ export default function HomePage() {
       <aside className="sidebar">
         <div className="brand"><div className="brand-mark"><Zap size={17} fill="currentColor" /></div><span>fittrack<span className="brand-accent">pro</span></span></div>
         <nav className="side-nav" aria-label="Primary navigation">
-          <a className="nav-item active" href="#dashboard"><Home size={18} />Overview</a>
-          <a className="nav-item" href="#workout"><Dumbbell size={18} />My workouts</a>
-          <a className="nav-item" href="#progress"><BarChart3 size={18} />Progress</a>
-          <a className="nav-item" href="#library"><LayoutGrid size={18} />Exercise library</a>
+          <a className="nav-item active" href="/"><Home size={18} />Overview</a>
+          <a className="nav-item" href="/workouts"><Dumbbell size={18} />My workouts</a>
+          <a className="nav-item" href="/progress"><BarChart3 size={18} />Progress</a>
+          <a className="nav-item" href="/library"><LayoutGrid size={18} />Exercise library</a>
         </nav>
         <div className="sidebar-bottom">
-          <a className="nav-item" href="#settings"><Settings2 size={18} />Settings</a>
+          <a className="nav-item" href="/settings"><Settings2 size={18} />Settings</a>
           <div className="profile-chip"><div className="avatar">JS</div><div><strong>Jordan Smith</strong><span>Intermediate</span></div><MoreHorizontal size={17} /></div>
         </div>
       </aside>
@@ -149,7 +149,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <nav className="mobile-nav"><a className="active" href="#dashboard"><Home size={19} /><span>Home</span></a><a href="#workout"><Dumbbell size={19} /><span>Train</span></a><a className="mobile-add" href="#workout"><Plus size={23} /></a><a href="#progress"><BarChart3 size={19} /><span>Progress</span></a><a href="#settings"><UserRound size={19} /><span>Profile</span></a></nav>
+      <nav className="mobile-nav"><a className="active" href="/"><Home size={19} /><span>Home</span></a><a href="/workouts"><Dumbbell size={19} /><span>Train</span></a><a className="mobile-add" href="/workouts"><Plus size={23} /></a><a href="/progress"><BarChart3 size={19} /><span>Progress</span></a><a href="/settings"><UserRound size={19} /><span>Profile</span></a></nav>
       {timerOpen && <div className="timer-pill"><TimerReset size={16} /><span>Rest timer</span><strong>{formatTimer(timer)}</strong><button onClick={() => { setTimer(0); setTimerOpen(false); }} aria-label="Close timer"><X size={15} /></button></div>}
     </main>
   );
