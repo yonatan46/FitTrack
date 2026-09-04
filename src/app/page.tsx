@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { logBodyWeight, logWorkout, savePreferences } from "@/app/actions";
+import { logBodyWeight, logWorkout, savePreferences, signOut } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
 import {
   ArrowUpRight,
@@ -59,6 +59,7 @@ export default function HomePage() {
   const [weightLogs, setWeightLogs] = useState<Array<{ weight_kg: number; logged_at: string }>>([]);
   const [workoutCount, setWorkoutCount] = useState(0);
   const [panel, setPanel] = useState<"help" | "notifications" | null>(null);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -120,14 +121,15 @@ export default function HomePage() {
         </nav>
         <div className="sidebar-bottom">
           <Link className="nav-item" href="/settings"><Settings2 size={18} />Settings</Link>
-          <div className="profile-chip"><div className="avatar">JS</div><div><strong>Jordan Smith</strong><span>Intermediate</span></div><MoreHorizontal size={17} /></div>
+          <button className="profile-chip" onClick={() => setProfileModalOpen(true)}><div className="avatar">{(profile?.display_name || "A").slice(0, 2).toUpperCase()}</div><div><strong>{profile?.display_name || "Your profile"}</strong><span>View account</span></div><MoreHorizontal size={17} /></button>
         </div>
       </aside>
 
       <section className="main-content" id="dashboard">
-        <header className="topbar"><div><p className="eyebrow">{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date())}</p><h1>Good morning, {profile?.display_name || "Athlete"} <span className="wave">✦</span></h1></div><div className="top-actions"><button className="icon-button" aria-label="Help" onClick={() => setPanel(panel === "help" ? null : "help")}><CircleHelp size={19} /></button><button className="icon-button notification" aria-label="Notifications" onClick={() => setPanel(panel === "notifications" ? null : "notifications")}><Bell size={19} /><i /></button><Link className="profile-menu-button" href="/settings" title="Open settings"><div className="avatar avatar-top">{(profile?.display_name || "A").slice(0, 2).toUpperCase()}</div></Link></div></header>
+        <header className="topbar"><div><p className="eyebrow">{new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(new Date())}</p><h1>Good morning, {profile?.display_name || "Athlete"} <span className="wave">✦</span></h1></div><div className="top-actions"><button className="icon-button" aria-label="Help" onClick={() => setPanel(panel === "help" ? null : "help")}><CircleHelp size={19} /></button><button className="icon-button notification" aria-label="Notifications" onClick={() => setPanel(panel === "notifications" ? null : "notifications")}><Bell size={19} /><i /></button><button className="profile-menu-button" onClick={() => setProfileModalOpen(true)} title="Open profile"><div className="avatar avatar-top">{(profile?.display_name || "A").slice(0, 2).toUpperCase()}</div></button></div></header>
 
         {panel && <section className="quick-panel"><div className="quick-panel-head"><strong>{panel === "help" ? "FitTrack help" : "Notifications"}</strong><button onClick={() => setPanel(null)} aria-label="Close panel"><X size={15} /></button></div>{panel === "help" ? <p>Tap an exercise to mark it complete, then choose <strong>Finish workout</strong> to save your session. Use Progress to log body weight and view your history.</p> : <p className="empty-state">You&apos;re all caught up. New reminders and milestones will appear here.</p>}</section>}
+        {profileModalOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setProfileModalOpen(false); }}><section className="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title"><button className="modal-close" onClick={() => setProfileModalOpen(false)} aria-label="Close profile"><X size={18} /></button><div className="modal-avatar">{(profile?.display_name || "A").slice(0, 2).toUpperCase()}</div><p className="eyebrow">Your account</p><h2 id="profile-modal-title">{profile?.display_name || "Athlete"}</h2><p className="modal-copy">Your personal training profile is ready. Update your preferences or sign out below.</p><Link className="primary-button modal-settings" href="/settings" onClick={() => setProfileModalOpen(false)}><Settings2 size={16} />Open settings</Link><button className="modal-signout" onClick={() => signOut()}>Sign out</button></section></div>}
 
         <div className="content-grid">
           <div className="primary-column">
