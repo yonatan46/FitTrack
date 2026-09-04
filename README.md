@@ -21,8 +21,9 @@ On Vercel, add the same two environment variables in **Project → Settings → 
   `full gym`, `home basics`, or `bodyweight`.
 - **Dashboard** – shows today's session from your actual plan, anchored to the calendar
   (Monday = Day 1; weekdays past your training-day count, incl. Sunday, are rest days),
-  last-used weights pulled from your history, a live rest timer, a real weekly-consistency strip,
-  momentum stats, and a body-weight sparkline.
+  last-used weights from your history, a live rest timer, weekly-consistency strip, momentum
+  stats, and a body-weight sparkline. Tap any exercise for its photo demo + steps; tap a
+  **missed past day** in the week strip to log the session you had planned.
 - **My workouts** – full plan with day tabs, per-set weight/reps logging, running volume total,
   a per-exercise "how to" popover (photo demo + steps), session history, one-click "regenerate plan".
 - **Progress** – log body weight (one entry per day, re-logging updates in place) and see an

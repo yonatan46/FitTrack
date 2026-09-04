@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock3, Dumbbell, HelpCircle, LoaderCircle, Play, RotateCcw, TimerReset, X } from "lucide-react";
+import { Check, Clock3, Dumbbell, HelpCircle, LoaderCircle, Play, RotateCcw, TimerReset } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { logWorkout, regeneratePlan } from "@/app/actions";
 import type { LoggedSet } from "@/lib/workout";
 import { PageFrame } from "@/components/page-frame";
-import { ExerciseDemo } from "@/components/exercise-demo";
+import { ExerciseSheet } from "@/components/exercise-sheet";
 
 type ExerciseRef = {
   name: string;
@@ -324,20 +324,7 @@ export default function WorkoutsPage() {
         </section>
       </div>
 
-      {howto && (
-        <div className="sheet-backdrop" onClick={() => setHowto(null)}>
-          <div className="exercise-sheet" role="dialog" aria-modal="true" aria-labelledby="howto-title" onClick={(event) => event.stopPropagation()}>
-            <button className="modal-close" onClick={() => setHowto(null)} aria-label="Close"><X size={18} /></button>
-            <ExerciseDemo start={howto.image_url} end={howto.image_url_2} alt={howto.name} size="detail" />
-            <p className="eyebrow">{howto.primary_muscle}</p>
-            <h2 id="howto-title">{howto.name}</h2>
-            <h4>How to do it</h4>
-            {howto.instructions?.length
-              ? <ol className="instr-list">{howto.instructions.map((step, index) => <li key={index}>{step}</li>)}</ol>
-              : <p className="instr-empty">No steps recorded for this exercise yet.</p>}
-          </div>
-        </div>
-      )}
+      {howto && <ExerciseSheet exercise={howto} onClose={() => setHowto(null)} />}
     </PageFrame>
   );
 }

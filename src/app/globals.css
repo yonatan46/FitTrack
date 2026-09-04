@@ -133,3 +133,23 @@ button, a { font: inherit; } button { cursor: pointer; } a { color: inherit; tex
 
 .howto-button { flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--muted); }
 .howto-button:hover { color: var(--lime); border-color: var(--lime); }
+
+/* Overview exercise row: left area opens the demo, right circle toggles done */
+.exercise-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 13px; padding: 0; border: 0; background: none; color: inherit; text-align: left; cursor: pointer; }
+.exercise-open:hover .exercise-info strong { color: var(--lime); }
+.row-check { flex: 0 0 auto; cursor: pointer; background: transparent; }
+.row-check.on { color: var(--lime); border-color: var(--lime); }
+
+/* Week strip days are buttons now */
+.week-strip .day { font: inherit; cursor: default; }
+.week-strip .day.today, .week-strip .day.day-missed { cursor: pointer; }
+.day.day-missed { border-style: dashed; border-color: var(--dim); }
+.day.day-missed:hover { border-color: var(--lime); }
+.day.day-missed i { color: var(--muted); }
+.week-hint { color: var(--dim); font-size: 10px; font-family: 'DM Mono', monospace; margin: 10px 0 0; }
+
+.mini-sheet { position: relative; width: min(100%, 380px); padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); box-shadow: var(--shadow); }
+.mini-sheet h3 { margin: 8px 0 10px; font-size: 20px; letter-spacing: -.4px; }
+.mini-sheet-copy { color: var(--muted); font-size: 12px; line-height: 1.55; margin: 0 0 18px; }
+.mini-sheet .primary-button { width: 100%; justify-content: center; }
+.mini-sheet .form-error { margin-top: 10px; }

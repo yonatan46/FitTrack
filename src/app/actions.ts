@@ -239,11 +239,16 @@ export async function regeneratePlan() {
 /*  Workout + body logging                                            */
 /* ------------------------------------------------------------------ */
 
-export async function logWorkout(title: string, sets: LoggedSet[], durationMinutes?: number) {
+export async function logWorkout(title: string, sets: LoggedSet[], durationMinutes?: number, sessionDate?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("You must be signed in.");
   if (!sets.length) throw new Error("Log at least one set before finishing.");
+
+  const validDate = typeof sessionDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sessionDate)
+    ? sessionDate
+    : null;
+  const today = new Date().toISOString().slice(0, 10);
 
   const { data: session, error: sessionError } = await supabase
     .from("workout_sessions")
@@ -252,6 +257,8 @@ export async function logWorkout(title: string, sets: LoggedSet[], durationMinut
       title,
       status: "completed",
       duration_minutes: Number.isFinite(durationMinutes) ? durationMinutes : null,
+      // Only allow backdating, never future-dating.
+      ...(validDate && validDate < today ? { session_date: validDate } : {}),
     })
     .select("id")
     .single();

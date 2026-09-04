@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { PageFrame } from "@/components/page-frame";
 import { ExerciseDemo } from "@/components/exercise-demo";
+import { ExerciseSheet } from "@/components/exercise-sheet";
 
 type Exercise = {
   id: string;
@@ -39,13 +40,6 @@ export default function LibraryPage() {
         setLoaded(true);
       });
   }, []);
-
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (event: KeyboardEvent) => event.key === "Escape" && setActive(null);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [active]);
 
   const muscles = useMemo(() => {
     const present = new Set(exercises.map((exercise) => exercise.primary_muscle));
@@ -100,24 +94,7 @@ export default function LibraryPage() {
         <p className="empty-state">No exercises match. Try a different muscle or search term — or run the Supabase exercise seed if the library is empty.</p>
       )}
 
-      {active && (
-        <div className="sheet-backdrop" onClick={() => setActive(null)}>
-          <div className="exercise-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" onClick={(event) => event.stopPropagation()}>
-            <button className="modal-close" onClick={() => setActive(null)} aria-label="Close"><X size={18} /></button>
-            <ExerciseDemo start={active.image_url} end={active.image_url_2} alt={active.name} size="detail" />
-            <p className="eyebrow">{(active.equipment_name || active.equipment.replace("_", " "))} · {active.difficulty}{active.mechanic ? ` · ${active.mechanic}` : ""}</p>
-            <h2 id="sheet-title">{active.name}</h2>
-            <div className="chip-row">
-              <span className="muscle-chip">{active.primary_muscle}</span>
-              {(active.secondary_muscles ?? []).map((item) => <span key={item} className="muscle-chip ghost">{item}</span>)}
-            </div>
-            <h4>How to do it</h4>
-            {active.instructions?.length
-              ? <ol className="instr-list">{active.instructions.map((step, index) => <li key={index}>{step}</li>)}</ol>
-              : <p className="instr-empty">No steps recorded for this exercise yet.</p>}
-          </div>
-        </div>
-      )}
+      {active && <ExerciseSheet exercise={active} onClose={() => setActive(null)} />}
     </PageFrame>
   );
 }

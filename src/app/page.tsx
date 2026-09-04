@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { logBodyWeight, logWorkout, savePreferences, signOut } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
+import { ExerciseSheet } from "@/components/exercise-sheet";
 import {
   ArrowUpRight,
   BarChart3,
@@ -36,7 +37,13 @@ type Profile = {
   onboarding_complete: boolean | null;
 };
 
-type ExerciseRef = { name: string; primary_muscle: string };
+type ExerciseRef = {
+  name: string;
+  primary_muscle: string;
+  image_url: string | null;
+  image_url_2: string | null;
+  instructions: string[] | null;
+};
 
 type PlanExerciseRow = {
   day_number: number;
@@ -103,6 +110,10 @@ export default function HomePage() {
   const [panel, setPanel] = useState<"help" | "notifications" | null>(null);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [hasNotifications, setHasNotifications] = useState(true);
+  const [sheetExercise, setSheetExercise] = useState<ExerciseRef | null>(null);
+  const [backfill, setBackfill] = useState<{ date: string; label: string; dayNumber: number } | null>(null);
+  const [backfillBusy, setBackfillBusy] = useState(false);
+  const [backfillError, setBackfillError] = useState("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -111,7 +122,7 @@ export default function HomePage() {
       supabase.from("body_logs").select("weight_kg,logged_at").order("logged_at", { ascending: false }).limit(30),
       supabase.from("workout_sessions").select("id,title,session_date,session_sets(exercise_name,weight_kg,reps,set_number)").eq("status", "completed").order("session_date", { ascending: false }).limit(30),
       supabase.from("workout_sessions").select("id", { count: "exact", head: true }).eq("status", "completed"),
-      supabase.from("workout_plans").select("name,days_per_week,created_at,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("workout_plans").select("name,days_per_week,created_at,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle,image_url,image_url_2,instructions))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]).then(([prefs, logs, sess, count, plan]) => {
       setProfile((prefs.data as Profile) ?? null);
       setWeightLogs(logs.data ?? []);
@@ -151,10 +162,9 @@ export default function HomePage() {
   const focusUsesAmp = todayFocus.includes(" & ");
   const focusWords = focusUsesAmp ? todayFocus.split(" & ") : todayFocus.split(" ");
 
-  const todayExercises = useMemo(() => {
-    if (isRestDay) return [];
+  const exercisesForDay = useCallback((dayNum: number) => {
     return planExercises
-      .filter((row) => row.day_number === todayDay)
+      .filter((row) => row.day_number === dayNum)
       .sort((a, b) => a.sort_order - b.sort_order)
       .map((row) => {
         const ref = firstExercise(row.exercises);
@@ -169,6 +179,7 @@ export default function HomePage() {
           }
         }
         return {
+          ref,
           name,
           muscle,
           code: MUSCLE_CODE[muscle] ?? (muscle || "EX").slice(0, 2).toUpperCase(),
@@ -179,7 +190,22 @@ export default function HomePage() {
           lastWeight,
         };
       });
-  }, [planExercises, todayDay, sessions, isRestDay]);
+  }, [planExercises, sessions]);
+
+  const buildSetsForDay = useCallback((dayNum: number) =>
+    exercisesForDay(dayNum).flatMap((exercise) =>
+      Array.from({ length: exercise.sets }, (_, index) => ({
+        exercise_name: exercise.name,
+        set_number: index + 1,
+        reps: exercise.repMin || 8,
+        weight_kg: exercise.lastWeight || 0,
+      })),
+    ), [exercisesForDay]);
+
+  const todayExercises = useMemo(
+    () => (isRestDay ? [] : exercisesForDay(todayDay)),
+    [exercisesForDay, todayDay, isRestDay],
+  );
 
   const estimatedMinutes = useMemo(
     () => Math.max(1, Math.round(todayExercises.reduce((total, ex) => total + ex.sets * (ex.restSeconds + 40), 0) / 60)),
@@ -202,9 +228,22 @@ export default function HomePage() {
       else if (iso === todayIso) state = "today";
       else if (index < trainingDays) state = "planned";
       else state = "rest";
-      return { day: letters[index], date: String(date.getDate()), state, key: iso };
+      const dayNumber = index < dayNumbers.length ? dayNumbers[index] : null;
+      return { day: letters[index], date: String(date.getDate()), state, key: iso, iso, dayNumber, past: iso < todayIso };
     });
-  }, [sessions, trainingDays]);
+  }, [sessions, trainingDays, dayNumbers]);
+
+  const openDay = (item: (typeof week)[number]) => {
+    if (item.state === "today") {
+      document.getElementById("workout")?.scrollIntoView({ behavior: "smooth" });
+      return;
+    }
+    if (item.past && item.state !== "done" && item.dayNumber !== null) {
+      const focusRow = planExercises.find((row) => row.day_number === item.dayNumber);
+      setBackfillError("");
+      setBackfill({ date: item.iso, dayNumber: item.dayNumber, label: focusRow?.day_focus?.trim() || planName });
+    }
+  };
 
   const sessionsThisWeek = useMemo(() => {
     const weekStart = localIso(startOfWeek(new Date()));
@@ -237,25 +276,39 @@ export default function HomePage() {
     setLoggingWorkout(true);
     setSaveError("");
     try {
-      const sets = todayExercises.flatMap((exercise) =>
-        Array.from({ length: exercise.sets }, (_, index) => ({
-          exercise_name: exercise.name,
-          set_number: index + 1,
-          reps: exercise.repMin || 8,
-          weight_kg: exercise.lastWeight || 0,
-        })),
-      );
-      await logWorkout(planName, sets, estimatedMinutes);
+      const sets = buildSetsForDay(todayDay);
+      await logWorkout(todayFocus, sets, estimatedMinutes);
       setWorkoutLogged(true);
       setWorkoutCount((count) => count + 1);
       setSessions((prev) => [
-        { id: crypto.randomUUID(), title: planName, session_date: localIso(new Date()), session_sets: sets },
+        { id: crypto.randomUUID(), title: todayFocus, session_date: localIso(new Date()), session_sets: sets },
         ...prev,
       ]);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save workout.");
     } finally {
       setLoggingWorkout(false);
+    }
+  };
+
+  const backfillSession = async () => {
+    if (!backfill || backfillBusy) return;
+    setBackfillBusy(true);
+    setBackfillError("");
+    try {
+      const sets = buildSetsForDay(backfill.dayNumber);
+      if (!sets.length) throw new Error("That day has no exercises to log.");
+      await logWorkout(backfill.label, sets, undefined, backfill.date);
+      setWorkoutCount((count) => count + 1);
+      setSessions((prev) => [
+        { id: crypto.randomUUID(), title: backfill.label, session_date: backfill.date, session_sets: sets },
+        ...prev,
+      ]);
+      setBackfill(null);
+    } catch (error) {
+      setBackfillError(error instanceof Error ? error.message : "Could not log that session.");
+    } finally {
+      setBackfillBusy(false);
     }
   };
 
@@ -375,12 +428,16 @@ export default function HomePage() {
                     {todayExercises.map((exercise) => {
                       const isDone = completed.includes(exercise.name);
                       return (
-                        <button className={`exercise-row ${isDone ? "is-done" : ""}`} key={exercise.name} onClick={() => toggleExercise(exercise.name)}>
-                          <div className="exercise-icon">{isDone ? <Check size={18} /> : exercise.code}</div>
-                          <div className="exercise-info"><strong>{exercise.name}</strong><span>{exercise.sets} sets · {exercise.repRange} reps</span></div>
+                        <div className={`exercise-row ${isDone ? "is-done" : ""}`} key={exercise.name}>
+                          <button className="exercise-open" onClick={() => exercise.ref && setSheetExercise(exercise.ref)} aria-label={`How to do ${exercise.name}`}>
+                            <div className="exercise-icon">{exercise.code}</div>
+                            <div className="exercise-info"><strong>{exercise.name}</strong><span>{exercise.sets} sets · {exercise.repRange} reps · tap for demo</span></div>
+                          </button>
                           <div className="exercise-load"><span>Last time</span><strong>{exercise.lastWeight ? `${exercise.lastWeight} kg` : "—"}</strong></div>
-                          <div className="row-check">{isDone ? <Check size={15} /> : <Plus size={16} />}</div>
-                        </button>
+                          <button className={`row-check ${isDone ? "on" : ""}`} onClick={() => toggleExercise(exercise.name)} aria-label={isDone ? `Mark ${exercise.name} not done` : `Mark ${exercise.name} done`}>
+                            {isDone ? <Check size={15} /> : <Plus size={16} />}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -406,13 +463,23 @@ export default function HomePage() {
                 <span className="muted-label">{sessionsThisWeek} of {trainingDays} sessions</span>
               </div>
               <div className="week-strip">
-                {week.map((item) => (
-                  <div className={`day ${item.state}`} key={item.key}>
-                    <span>{item.day}</span><strong>{item.date}</strong>
-                    <i>{item.state === "done" ? <Check size={13} /> : item.state === "today" ? <span /> : null}</i>
-                  </div>
-                ))}
+                {week.map((item) => {
+                  const canLog = item.past && item.state !== "done" && item.dayNumber !== null;
+                  return (
+                    <button
+                      type="button"
+                      className={`day ${item.state} ${canLog ? "day-missed" : ""}`}
+                      key={item.key}
+                      onClick={() => openDay(item)}
+                      aria-label={canLog ? `Log a workout for ${item.day} ${item.date}` : `${item.day} ${item.date}`}
+                    >
+                      <span>{item.day}</span><strong>{item.date}</strong>
+                      <i>{item.state === "done" ? <Check size={13} /> : item.state === "today" ? <span /> : canLog ? <Plus size={12} /> : null}</i>
+                    </button>
+                  );
+                })}
               </div>
+              <p className="week-hint">Missed a day? Tap it to log the session you planned.</p>
             </section>
           </div>
 
@@ -509,6 +576,26 @@ export default function HomePage() {
         <div className="timer-pill">
           <TimerReset size={16} /><span>Rest timer</span><strong>{formatTimer(timer)}</strong>
           <button onClick={() => { setTimer(0); setTimerOpen(false); }} aria-label="Close timer"><X size={15} /></button>
+        </div>
+      )}
+
+      {sheetExercise && <ExerciseSheet exercise={sheetExercise} onClose={() => setSheetExercise(null)} />}
+
+      {backfill && (
+        <div className="sheet-backdrop" onClick={() => setBackfill(null)}>
+          <div className="mini-sheet" role="dialog" aria-modal="true" aria-labelledby="backfill-title" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setBackfill(null)} aria-label="Close"><X size={18} /></button>
+            <p className="eyebrow">Log a missed day</p>
+            <h3 id="backfill-title">{backfill.label}</h3>
+            <p className="mini-sheet-copy">
+              {new Date(`${backfill.date}T00:00:00`).toLocaleDateString("en", { weekday: "long", month: "short", day: "numeric" })} — logs the planned sets at your last-used weights. Fine-tune later in My workouts.
+            </p>
+            <button className="primary-button" onClick={backfillSession} disabled={backfillBusy}>
+              {backfillBusy ? <LoaderCircle size={16} className="spin" /> : <Check size={16} />}
+              Log this session
+            </button>
+            {backfillError && <p className="form-error">{backfillError}</p>}
+          </div>
         </div>
       )}
     </main>
