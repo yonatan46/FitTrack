@@ -24,11 +24,20 @@ On Vercel, add the same two environment variables in **Project → Settings → 
   last-used weights pulled from your history, a live rest timer, a real weekly-consistency strip,
   momentum stats, and a body-weight sparkline.
 - **My workouts** – full plan with day tabs, per-set weight/reps logging, running volume total,
-  session history, and a one-click "regenerate plan".
+  a per-exercise "how to" popover (photo demo + steps), session history, one-click "regenerate plan".
 - **Progress** – log body weight (one entry per day, re-logging updates in place) and see an
   area chart of weight over time.
 - **Settings** – edit preferences; changing training days or equipment rebuilds the plan.
-- **Exercise library** – searchable, filterable, with form-demo links.
+- **Exercise library** – ~68 exercises, searchable and filterable by muscle. Each has a
+  two-frame photo demo (start → end, alternating) and numbered instructions, shown in-app.
+  Demo photos are vendored into `public/exercises/` (source: the public-domain
+  [free-exercise-db](https://github.com/yuhonas/free-exercise-db)).
+
+## Updating an existing database
+
+If you already ran an earlier `schema.sql`, re-run the current one — it is idempotent. It adds the
+new `exercises` columns and reseeds the library. Existing users should hit **Regenerate plan**
+(Workouts or Settings) once, since exercise names changed.
 
 ## Commands
 

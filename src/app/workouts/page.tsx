@@ -1,13 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Clock3, Dumbbell, LoaderCircle, Play, RotateCcw, TimerReset } from "lucide-react";
+import { Check, Clock3, Dumbbell, HelpCircle, LoaderCircle, Play, RotateCcw, TimerReset, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { logWorkout, regeneratePlan } from "@/app/actions";
 import type { LoggedSet } from "@/lib/workout";
 import { PageFrame } from "@/components/page-frame";
+import { ExerciseDemo } from "@/components/exercise-demo";
 
-type ExerciseRef = { name: string; primary_muscle: string };
+type ExerciseRef = {
+  name: string;
+  primary_muscle: string;
+  image_url: string | null;
+  image_url_2: string | null;
+  instructions: string[] | null;
+};
 
 type PlanExerciseRow = {
   day_number: number;
@@ -46,11 +53,12 @@ export default function WorkoutsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [regenerating, setRegenerating] = useState(false);
+  const [howto, setHowto] = useState<ExerciseRef | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
     Promise.all([
-      supabase.from("workout_plans").select("name,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      supabase.from("workout_plans").select("name,plan_exercises(day_number,day_focus,sets,rep_min,rep_max,rest_seconds,sort_order,exercises(name,primary_muscle,image_url,image_url_2,instructions))").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("workout_sessions").select("id,title,session_date,duration_minutes,session_sets(weight_kg,reps)").eq("status", "completed").order("session_date", { ascending: false }).limit(10),
       supabase.from("workout_sessions").select("session_sets(exercise_name,weight_kg)").eq("status", "completed").order("session_date", { ascending: false }).limit(20),
     ]).then(([plan, hist, recent]) => {
@@ -230,6 +238,9 @@ export default function WorkoutsPage() {
                           <strong>{ref.name}</strong>
                           <small>{ref.primary_muscle} · target {row.sets}×{row.rep_min}–{row.rep_max} · rest {row.rest_seconds}s</small>
                         </div>
+                        <button className="howto-button" aria-label={`How to do ${ref.name}`} onClick={() => setHowto(ref)}>
+                          <HelpCircle size={15} />
+                        </button>
                         <button
                           className={`set-toggle ${allDone ? "on" : ""}`}
                           aria-label={allDone ? "Clear all sets" : "Mark all sets done"}
@@ -312,6 +323,21 @@ export default function WorkoutsPage() {
           </div>
         </section>
       </div>
+
+      {howto && (
+        <div className="sheet-backdrop" onClick={() => setHowto(null)}>
+          <div className="exercise-sheet" role="dialog" aria-modal="true" aria-labelledby="howto-title" onClick={(event) => event.stopPropagation()}>
+            <button className="modal-close" onClick={() => setHowto(null)} aria-label="Close"><X size={18} /></button>
+            <ExerciseDemo start={howto.image_url} end={howto.image_url_2} alt={howto.name} size="detail" />
+            <p className="eyebrow">{howto.primary_muscle}</p>
+            <h2 id="howto-title">{howto.name}</h2>
+            <h4>How to do it</h4>
+            {howto.instructions?.length
+              ? <ol className="instr-list">{howto.instructions.map((step, index) => <li key={index}>{step}</li>)}</ol>
+              : <p className="instr-empty">No steps recorded for this exercise yet.</p>}
+          </div>
+        </div>
+      )}
     </PageFrame>
   );
 }

@@ -57,7 +57,8 @@ type SessionRow = {
 };
 
 const MUSCLE_CODE: Record<string, string> = {
-  chest: "CH", back: "BK", shoulders: "SH", legs: "LG", hamstrings: "HM", arms: "AR",
+  chest: "CH", back: "BK", shoulders: "SH", biceps: "BI", triceps: "TR",
+  quads: "QD", hamstrings: "HM", glutes: "GL", calves: "CF", core: "CO", traps: "TP",
 };
 
 const GOAL_LABEL: Record<string, string> = {

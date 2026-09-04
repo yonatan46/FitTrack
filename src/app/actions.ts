@@ -22,39 +22,40 @@ type Template = { name: string; days: TemplateDay[] };
 const CHEST_TRI = "Chest & triceps";
 const BACK_BI = "Back & biceps";
 const LEGS_DELTS = "Legs & shoulders";
+const LEGS_CORE = "Legs & core";
 
 const TEMPLATES: Record<string, Template> = {
   full_gym: {
     name: "Classic split",
     days: [
-      { focus: CHEST_TRI, exercises: ["Barbell Bench Press", "Push Up", "Cable Triceps Pushdown"] },
-      { focus: BACK_BI, exercises: ["Lat Pulldown", "Seated Cable Row", "Dumbbell Biceps Curl"] },
-      { focus: LEGS_DELTS, exercises: ["Back Squat", "Romanian Deadlift", "Leg Press", "Dumbbell Shoulder Press"] },
-      { focus: CHEST_TRI, exercises: ["Barbell Bench Press", "Push Up", "Cable Triceps Pushdown"] },
-      { focus: BACK_BI, exercises: ["Lat Pulldown", "Pull Up", "Dumbbell Biceps Curl"] },
-      { focus: LEGS_DELTS, exercises: ["Back Squat", "Walking Lunges", "Leg Press", "Dumbbell Shoulder Press"] },
+      { focus: CHEST_TRI, exercises: ["Barbell Bench Press", "Incline Dumbbell Press", "Cable Crossover", "Triceps Pushdown", "Overhead Rope Extension"] },
+      { focus: BACK_BI, exercises: ["Deadlift", "Lat Pulldown", "Seated Cable Row", "Barbell Curl", "Hammer Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Back Squat", "Romanian Deadlift", "Leg Press", "Overhead Barbell Press", "Dumbbell Lateral Raise"] },
+      { focus: CHEST_TRI, exercises: ["Incline Barbell Press", "Dumbbell Bench Press", "Machine Chest Press", "Skull Crusher", "Rope Triceps Pushdown"] },
+      { focus: BACK_BI, exercises: ["Pull-Up", "Bent-Over Barbell Row", "Close-Grip Pulldown", "Preacher Curl", "Incline Dumbbell Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Front Squat", "Lying Leg Curl", "Leg Extension", "Walking Lunge", "Arnold Press", "Front Raise"] },
     ],
   },
   home_basic: {
     name: "Home split",
     days: [
-      { focus: CHEST_TRI, exercises: ["Push Up", "Dumbbell Shoulder Press", "Cable Triceps Pushdown"] },
-      { focus: BACK_BI, exercises: ["Pull Up", "Seated Cable Row", "Dumbbell Biceps Curl"] },
-      { focus: LEGS_DELTS, exercises: ["Romanian Deadlift", "Walking Lunges", "Dumbbell Shoulder Press"] },
-      { focus: CHEST_TRI, exercises: ["Push Up", "Dumbbell Shoulder Press", "Cable Triceps Pushdown"] },
-      { focus: BACK_BI, exercises: ["Pull Up", "Seated Cable Row", "Dumbbell Biceps Curl"] },
-      { focus: LEGS_DELTS, exercises: ["Romanian Deadlift", "Walking Lunges", "Dumbbell Shoulder Press"] },
+      { focus: CHEST_TRI, exercises: ["Dumbbell Bench Press", "Incline Dumbbell Press", "Dumbbell Fly", "Overhead Dumbbell Extension", "Bench Dip"] },
+      { focus: BACK_BI, exercises: ["One-Arm Dumbbell Row", "Chin-Up", "Dumbbell Curl", "Hammer Curl", "Concentration Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Goblet Squat", "Romanian Deadlift", "Walking Lunge", "Dumbbell Shoulder Press", "Dumbbell Lateral Raise"] },
+      { focus: CHEST_TRI, exercises: ["Incline Dumbbell Press", "Dumbbell Bench Press", "Wide Push-Up", "Lying Dumbbell Extension", "Triceps Kickback"] },
+      { focus: BACK_BI, exercises: ["One-Arm Dumbbell Row", "Pull-Up", "Alternating Dumbbell Curl", "Incline Dumbbell Curl", "Hammer Curl"] },
+      { focus: LEGS_DELTS, exercises: ["Goblet Squat", "Reverse Lunge", "Glute Bridge", "Arnold Press", "Reverse Fly"] },
     ],
   },
   bodyweight: {
     name: "Bodyweight split",
     days: [
-      { focus: "Push focus", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
-      { focus: "Pull focus", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
-      { focus: "Legs focus", exercises: ["Walking Lunges", "Push Up", "Pull Up"] },
-      { focus: "Push focus", exercises: ["Push Up", "Walking Lunges", "Pull Up"] },
-      { focus: "Pull focus", exercises: ["Pull Up", "Push Up", "Walking Lunges"] },
-      { focus: "Legs focus", exercises: ["Walking Lunges", "Push Up", "Pull Up"] },
+      { focus: "Push focus", exercises: ["Push-Up", "Wide Push-Up", "Bench Dip", "Triceps Dip"] },
+      { focus: "Pull focus", exercises: ["Pull-Up", "Chin-Up"] },
+      { focus: LEGS_CORE, exercises: ["Bodyweight Squat", "Glute Bridge", "Hanging Leg Raise", "Plank"] },
+      { focus: "Push focus", exercises: ["Wide Push-Up", "Push-Up", "Triceps Dip", "Bench Dip"] },
+      { focus: "Pull focus", exercises: ["Chin-Up", "Pull-Up"] },
+      { focus: LEGS_CORE, exercises: ["Bodyweight Squat", "Glute Bridge", "Bicycle Crunch", "Russian Twist", "Plank"] },
     ],
   },
 };
